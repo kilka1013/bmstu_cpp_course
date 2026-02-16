@@ -5,7 +5,7 @@
 #include <utility>
 
 namespace bmstu
-{
+{    
 template <typename T>
 class stack
 {

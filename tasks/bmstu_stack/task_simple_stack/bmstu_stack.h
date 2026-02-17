@@ -1,92 +1,91 @@
 #pragma once
-
 #include <exception>
 #include <utility>
 
 namespace bmstu
 {
+
 template <typename T>
 class stack
 {
-   public:
-	stack() : data_(nullptr), size_(0), capacity_(0) {}
-
-	bool empty() const noexcept { return size_ == 0; }
-
-	size_t size() const noexcept { return size_; }
-
-	~stack()
+   private:
+	struct Node
 	{
-		clear();
-		::operator delete(data_);
-	}
+		T value;
+		Node* next;
+
+		template <typename... Args>
+		Node(Node* nextNode, Args&&... args)
+			: value(std::forward<Args>(args)...), next(nextNode)
+		{
+		}
+	};
+
+	Node* head;
+	size_t sz;
+
+   public:
+	stack() : head(nullptr), sz(0) {}
+
+	~stack() { clear(); }
+
+	bool empty() const { return sz == 0; }
+
+	size_t size() const { return sz; }
 
 	template <typename... Args>
 	void emplace(Args&&... args)
 	{
-		if (size_ == capacity_)
-		{
-			reserve_more();
-		}
-		new (data_ + size_) T(std::forward<Args>(args)...);
-		++size_;
+		head = new Node(head, std::forward<Args>(args)...);
+		++sz;
 	}
 
-	void push(const T& value) { emplace(value); }
-
-	void push(T&& value) { emplace(std::move(value)); }
-
-	void clear() noexcept
+	void push(const T& value)
 	{
-		while (size_ > 0)
-		{
-			--size_;
-			(data_ + size_)->~T();
-		}
+		head = new Node(head, value);
+		++sz;
+	}
+
+	void push(T&& value)
+	{
+		head = new Node(head, std::move(value));
+		++sz;
 	}
 
 	void pop()
 	{
 		if (empty())
-			throw std::underflow_error("Stack is empty!");
+			throw std::underflow_error("stack is empty");
 
-		--size_;
-		(data_ + size_)->~T();
+		Node* temp = head;
+		head = head->next;
+		delete temp;
+		--sz;
 	}
 
 	T& top()
 	{
 		if (empty())
-			throw std::underflow_error("Stack is empty!");
-		return data_[size_ - 1];
+			throw std::underflow_error("stack is empty");
+
+		return head->value;
 	}
 
 	const T& top() const
 	{
 		if (empty())
-			throw std::underflow_error("Stack is empty!");
-		return data_[size_ - 1];
+			throw std::underflow_error("stack is empty");
+
+		return head->value;
 	}
 
-   private:
-	T* data_;
-	size_t size_;
-	size_t capacity_;
-
-	void reserve_more()
+	void clear()
 	{
-		size_t new_capacity = capacity_ == 0 ? 1 : capacity_ * 2;
-		T* new_data = static_cast<T*>(::operator new(new_capacity * sizeof(T)));
-
-		for (size_t i = 0; i < size_; ++i)
+		while (!empty())
 		{
-			new (new_data + i) T(std::move(data_[i]));
-			(data_ + i)->~T();
+			pop();
 		}
-
-		::operator delete(data_);
-		data_ = new_data;
-		capacity_ = new_capacity;
 	}
 };
+
 }  // namespace bmstu
